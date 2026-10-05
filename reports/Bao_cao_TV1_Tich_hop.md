@@ -1,0 +1,68 @@
+# Báo cáo Nhiệm vụ — Thành viên 1: Tích hợp & Kiến trúc Hệ thống
+
+**Đề tài:** T7 — Multi-camera bandwidth profiling bằng dữ liệu RGB-D tổng hợp  
+**Thành viên:** TV1 (Phụ trách: Tích hợp, Quản lý kiến trúc & Môi trường thực thi)  
+**Nền tảng mục tiêu:** Windows 11 — Laptop HP Victus 16  
+**Ngày thực hiện:** 05/10/2026
+
+---
+
+## 1. Tóm tắt vai trò và mục tiêu của TV1
+
+Theo kế hoạch phối hợp [Thu_tu_trien_khai_va_phoi_hop_Team5.md](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/Thu_tu_trien_khai_va_phoi_hop_Team5.md), TV1 đóng vai trò là "xương sống" kết nối kỹ thuật cho cả nhóm 5 người, chịu trách nhiệm:
+1. **Khởi tạo và chuẩn hóa repository:** Cấu trúc thư mục sạch, loại bỏ xung đột file rác qua `.gitignore`, cố định danh sách dependencies qua `requirements.txt`.
+2. **Kiểm tra và chuẩn hóa môi trường Windows 11:** Xử lý sự khác biệt giữa kiến trúc IPC Linux vs Windows (multiprocessing spawn context, quản lý vòng đời Shared Memory).
+3. **Chốt Giao ước kỹ thuật (Contract Specification):** Thống nhất định dạng frame RGB-D, metadata packet, schema CSV viễn trắc và quy tắc đặt tên thư mục kết quả.
+4. **Xây dựng bộ khung mã nguồn lõi `bench.py`:** Phân tách ranh giới rõ ràng cho TV2 (Producer/Memory) và TV3 (Consumer/Metrics), cung cấp sẵn baseline chạy được cho cả 2 mode `queue` và `shm`.
+5. **Thiết lập cổng kiểm tra tích hợp (Integration Gate):** Cung cấp công cụ smoke test tự động `scripts/smoke_test.py` nhằm xác thực toàn bộ đường ống trước khi bàn giao cho TV5 đo đạc chính thức.
+6. **Tài liệu hóa toàn diện:** Viết `README.md` đóng vai trò cẩm nang hướng dẫn cho cả 5 thành viên.
+
+---
+
+## 2. Các quyết định kỹ thuật cốt lõi (Engineering Decisions)
+
+### 2.1. Lựa chọn cơ chế Zero-copy Shared Memory kết hợp IPC Metadata Queue
+- **Vấn đề:** Khi giả lập 4 hoặc 8 camera RGB-D VGA (640x480) ở 30 FPS, lưu lượng thô đạt từ $175.8 \text{ MB/s}$ đến $351.6 \text{ MB/s}$. Nếu dùng `multiprocessing.Queue` thông thường, mỗi frame sẽ bị pickle/unpickle và copy qua pipe OS ít nhất 2 lần, gây nghẽn CPU và biến dạng độ trễ thực tế.
+- **Giải pháp:** TV1 quyết định thiết kế kiến trúc lai (Hybrid Architecture):
+  - **Dữ liệu lớn (Payload):** Lưu trực tiếp vào khối bộ nhớ chia sẻ dùng chung `multiprocessing.shared_memory.SharedMemory` theo cơ chế phân rã Slot ID.
+  - **Dữ liệu điều khiển (Metadata):** Đóng gói thành bản tin siêu nhẹ (`FrameMetadata`) gồm timestamp, frame_id, camera_id, slot_id và truyền qua Queue.
+  - **Kết quả:** Consumer chỉ cần đọc Metadata rồi truy xuất thẳng vào slot tương ứng của SHM, loại bỏ hoàn toàn chi phí copy dữ liệu lớn.
+
+### 2.2. Xử lý an toàn tiến trình trên Windows 11
+- Không giống Linux sử dụng `fork()`, Windows 11 bắt buộc sử dụng phương thức khởi tạo `spawn`.
+- TV1 đã bổ sung:
+  - `mp.freeze_support()` tại điểm vào của tiến trình chính.
+  - Đảm bảo toàn bộ logic tiến trình con nằm trong các hàm callable độc lập ở top-level module (`camera_producer`, `consumer_logger`).
+  - Đóng gói cơ chế dọn dẹp bộ nhớ chia sẻ bắt buộc: `shm.close()` và `shm.unlink()` trong khối `finally` hoặc sau khi các tiến trình worker kết thúc, ngăn chặn tình trạng leak memory buffer trên hệ thống Windows.
+
+---
+
+## 3. Danh mục sản phẩm đã bàn giao
+
+| STT | Tên tệp / Thư mục | Mô tả nội dung | Người tiếp nhận |
+|---|---|---|---|
+| 1 | [.gitignore](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/.gitignore) | Cấu hình loại trừ cache, file tạm, lưu giữ thư mục kết quả qua `.gitkeep` | Cả nhóm |
+| 2 | [requirements.txt](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/requirements.txt) | Danh sách thư viện: `numpy`, `pandas`, `matplotlib`, `psutil`, `tabulate` | Cả nhóm |
+| 3 | [scripts/check_env.py](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/scripts/check_env.py) | Kịch bản kiểm tra tương thích phần cứng HP Victus 16, RAM, CPU Cores, SHM | Cả nhóm / TV5 |
+| 4 | [specs/contract_spec.md](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/specs/contract_spec.md) | Đặc tả kỹ thuật: Kích thước RGB-D, Metadata Packet, Schema CSV, Quy ước thư mục | TV2, TV3, TV4, TV5 |
+| 5 | [bench.py](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/bench.py) | Bộ khung mã nguồn tích hợp phân định vùng độc lập (SECTION 1, 2, 3, 4) | TV2, TV3, TV5 |
+| 6 | [scripts/smoke_test.py](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/scripts/smoke_test.py) | Công cụ tự động hóa kiểm tra tính toàn vẹn đường ống dữ liệu (Quality Gate) | TV1, TV5 |
+| 7 | [README.md](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/README.md) | Cẩm nang hướng dẫn dự án, quy tắc phối hợp song song và chạy lệnh mẫu | Cả nhóm |
+| 8 | [reports/Bao_cao_TV1_Tich_hop.md](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/reports/Bao_cao_TV1_Tich_hop.md) | Báo cáo chi tiết của TV1 về thiết kế kiến trúc và nhật ký tích hợp | Giảng viên / Nhóm |
+
+---
+
+## 4. Hướng dẫn tiếp nối cho 4 thành viên
+
+- **TV2 (Data Source & Memory):**
+  - Mở file `bench.py`, tìm đến `SECTION 2: PRODUCER & MEMORY SLOT MANAGEMENT`.
+  - Thay thế hoặc bổ sung thuật toán pacing frame chính xác hơn, mô phỏng pattern độ sâu thực tế và hoàn thiện logic tái sử dụng slot bộ nhớ chia sẻ.
+- **TV3 (Metrics & Plot):**
+  - Mở file `bench.py`, tìm đến `SECTION 3: CONSUMER, TELEMETRY & LOGGER`.
+  - Kiểm tra và mở rộng các cột thống kê viễn trắc nếu cần, sau đó tạo file `plots/plot.py` đọc từ `frames_telemetry.csv` để vẽ các biểu đồ Bandwidth, Latency percentile và Dropped frames.
+- **TV4 (Research & Protocol):**
+  - Đọc tài liệu [specs/contract_spec.md](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/specs/contract_spec.md) để đối chiếu thông số $1.465 \text{ MB/frame}$ với giới hạn lý thuyết băng thông của bus USB 3.0 / PCIe trên laptop HP Victus 16.
+  - Viết tài liệu phương pháp luận tại thư mục `docs/`.
+- **TV5 (QA & Runner):**
+  - Chạy `python scripts/check_env.py` và `python scripts/smoke_test.py` trên laptop HP Victus 16 để xác nhận môi trường sạch.
+  - Xây dựng file `scripts/runner.py` để lặp qua ma trận số camera `[1, 2, 4, 8]` và FPS `[30, 60]` theo các tham số CLI đã chuẩn bị sẵn trong `bench.py`.
