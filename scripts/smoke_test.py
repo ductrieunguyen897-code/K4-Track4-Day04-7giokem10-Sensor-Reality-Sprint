@@ -1,5 +1,6 @@
 """
-Smoke Test & Integration Verification Script (TV1 - Integration Quality Gate)
+Smoke Test & Integration Verification Script
+Maintained by: TV1 - Bùi Văn Quang (MSV: 2A202602688)
 Purpose: Verify that the benchmark core runs correctly end-to-end,
 generates valid CSV/JSON outputs according to specs/contract_spec.md,
 and safely cleans up all shared memory allocations.
@@ -14,7 +15,7 @@ import pandas as pd
 
 def run_smoke_test():
     print("=" * 70)
-    print("RUNNING INTEGRATION SMOKE TEST (TV1 Integration Gate)")
+    print("RUNNING INTEGRATION SMOKE TEST (TV1 - Bùi Văn Quang [MSV: 2A202602688])")
     print("=" * 70)
 
     test_dir = os.path.join("results", "smoke_test_output")

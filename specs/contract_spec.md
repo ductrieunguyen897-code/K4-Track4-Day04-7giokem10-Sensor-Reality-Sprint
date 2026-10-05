@@ -1,8 +1,8 @@
 # Đặc tả Giao thức & Định dạng Kỹ thuật (Contract Specification) — Team 5
 
 **Đề tài:** T7 — Multi-camera bandwidth profiling bằng dữ liệu RGB-D tổng hợp  
-**Phụ trách điều phối & tổng hợp:** Thành viên 1 (TV1 — Tích hợp)  
-**Phạm vi áp dụng:** Thống nhất giữa TV1, TV2 (Producer/Memory), TV3 (Metrics/Plot), TV4 (Protocol/Theory), TV5 (QA/Runner).
+**Phụ trách điều phối & tổng hợp:** TV1 — Bùi Văn Quang (MSV: 2A202602688) — Tích hợp & Kiến trúc  
+**Phạm vi áp dụng:** Thống nhất giữa TV1 (Bùi Văn Quang), TV2 (Producer/Memory), TV3 (Metrics/Plot), TV4 (Protocol/Theory), TV5 (QA/Runner).
 
 ---
 

@@ -17,7 +17,7 @@ Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_tr
 
 | Thành viên | Vai trò | Nhiệm vụ chính | Phạm vi code / tài liệu |
 |---|---|---|---|
-| **TV1** *(Đã thực hiện)* | **Tích hợp & Kiến trúc** | Xây dựng repo, thiết lập môi trường Windows 11, xây dựng bộ khung `bench.py`, chuẩn hóa `specs/contract_spec.md`, scripts kiểm tra môi trường và hoàn thiện tài liệu hướng dẫn README. | `.gitignore`, `requirements.txt`, `scripts/check_env.py`, `specs/contract_spec.md`, `bench.py` (Khung chung), `README.md` |
+| **TV1 — Bùi Văn Quang (MSV: 2A202602688)** *(Đã thực hiện)* | **Tích hợp & Kiến trúc** | Xây dựng repo, thiết lập môi trường Windows 11, xây dựng bộ khung `bench.py`, chuẩn hóa `specs/contract_spec.md`, scripts kiểm tra môi trường và hoàn thiện tài liệu hướng dẫn README. | `.gitignore`, `requirements.txt`, `scripts/check_env.py`, `specs/contract_spec.md`, `bench.py` (Khung chung), `README.md` |
 | **TV2** *(Giữ nguyên)* | **Nguồn dữ liệu & Bộ nhớ** | Hoàn thiện hàm `camera_producer()`, mô hình hóa độ nhiễu RGB-D, điều khiển pacing (FPS), quản lý vòng đời slot bộ nhớ chia sẻ (ring buffer) và cơ chế xử lý overload/latest frame. | `bench.py` (Section 2: Producer & Memory Slots) |
 | **TV3** *(Giữ nguyên)* | **Metric & Đo lường** | Hoàn thiện hàm `consumer_logger()`, công thức đo latency p95/mean, frame drop rate, tính toán throughput thực tế và viết script trực quan hóa `plot.py`. | `bench.py` (Section 3: Consumer & Telemetry), `plot.py` |
 | **TV4** *(Giữ nguyên)* | **Nghiên cứu & Giao thức** | Phân tích cơ sở lý thuyết băng thông raw vs bottleneck bus, thiết kế ma trận kiểm thử (Test Matrix), viết báo cáo phương pháp luận (Methodology) và giới hạn thực nghiệm. | `docs/methodology.md`, Báo cáo phân tích chuyên sâu |
@@ -31,13 +31,13 @@ Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_tr
 K4-Track4-Day04-10-7-Sensor-Reality-Sprint/
 ├── .gitignore                      # Cấu hình bỏ qua cache, file tạm, output nặng
 ├── requirements.txt                # Danh sách thư viện phụ thuộc (Windows 11)
-├── README.md                       # Hướng dẫn tổng thể dự án (TV1)
+├── README.md                       # Hướng dẫn tổng thể dự án (TV1 - Bùi Văn Quang)
 ├── Thu_tu_trien_khai_va_phoi_hop_Team5.md  # Kế hoạch phối hợp tác chiến của nhóm
 ├── bench.py                        # Bộ khung benchmark tích hợp (Core Profiler)
 ├── specs/
 │   └── contract_spec.md            # Đặc tả kỹ thuật: RGB-D, Metadata, CSV Schema
 ├── scripts/
-│   ├── check_env.py                # Script kiểm tra phần cứng & môi trường (TV1)
+│   ├── check_env.py                # Script kiểm tra phần cứng & môi trường (TV1 - Bùi Văn Quang)
 │   └── runner.py                   # (Vùng của TV5: Tự động chạy test matrix)
 ├── plots/                          # (Vùng của TV3: Chứa script plot.py & hình biểu đồ)
 │   └── .gitkeep

@@ -4,10 +4,10 @@ Architecture: Producer-Consumer multi-processing with Synthetic RGB-D data.
 Platform: Windows 11 / Laptop HP Victus 16
 
 Team Allocation Notice:
-- SECTION 1: COMMON CONTRACT & CONFIG (Managed by TV1)
+- SECTION 1: COMMON CONTRACT & CONFIG (Managed by TV1 - Bùi Văn Quang [MSV: 2A202602688])
 - SECTION 2: PRODUCER & BUFFER / SLOT LOGIC (Assigned to TV2 - Data Source & Memory)
 - SECTION 3: CONSUMER, TELEMETRY & LOGGER (Assigned to TV3 - Metrics & Telemetry)
-- SECTION 4: BENCHMARK RUNNER & INTEGRATION (Managed by TV1 & TV5)
+- SECTION 4: BENCHMARK RUNNER & INTEGRATION (Managed by TV1 - Bùi Văn Quang & TV5)
 """
 
 import os
@@ -20,7 +20,7 @@ from multiprocessing import shared_memory
 import numpy as np
 
 # ==============================================================================
-# SECTION 1: COMMON CONTRACT & CONFIGURATION (TV1 - Architecture / Contract)
+# SECTION 1: COMMON CONTRACT & CONFIGURATION (TV1 - Bùi Văn Quang [MSV: 2A202602688])
 # ==============================================================================
 
 DEFAULT_WIDTH = 640
@@ -227,7 +227,7 @@ def consumer_logger(meta_queue, data_queue, total_expected_frames,
         shm_block.close()
 
 # ==============================================================================
-# SECTION 4: BENCHMARK RUNNER & INTEGRATION (TV1 & TV5)
+# SECTION 4: BENCHMARK RUNNER & INTEGRATION (TV1 - Bùi Văn Quang & TV5)
 # ==============================================================================
 
 def run_benchmark(num_cameras=1, target_fps=30, duration_sec=5,

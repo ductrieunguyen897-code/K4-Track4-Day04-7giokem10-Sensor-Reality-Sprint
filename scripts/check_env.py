@@ -1,5 +1,6 @@
 """
-Environment and Hardware Pre-flight Check for Topic T7 (TV1 - Windows 11 Support)
+Environment and Hardware Pre-flight Check for Topic T7
+Maintained by: TV1 - Bùi Văn Quang (MSV: 2A202602688)
 Target Device: Laptop HP Victus 16 (Windows 11)
 """
 
