@@ -1,0 +1,10 @@
+# Environment Manifest — Benchmark HP Victus 16
+
+- **Thiết bị:** Victus by HP Laptop 16-e0xxx
+- **Hệ điều hành:** Microsoft Windows 11 Home Single Language (Build 26200)
+- **CPU:** AMD Ryzen 7 5800H with Radeon Graphics (8 Cores, 16 Logical Processors)
+- **RAM:** 8 GB DDR4 (7.34 GB khả dụng)
+- **GPU:** NVIDIA GeForce RTX 3050 Ti Laptop GPU (Driver 32.0.15.9282) / AMD Radeon(TM) Graphics
+- **Python Version:** Python 3.11.9 (Windows native, multiprocessing start method: spawn)
+- **Power & Thermal:** Cắm sạc AC trực tiếp, Windows Power Mode: Best Performance, HP OMEN/Victus Thermal Mode: Performance/Default
+- **Điều kiện đo:** Viewer OFF, không chạy trình duyệt hoặc tác vụ nặng nền, benchmark chạy tuần tự từng run.

@@ -6,22 +6,24 @@ Dự án đo lường và đánh giá hiệu năng băng thông (Bandwidth Profi
 
 ## 1. Thông tin chung
 - **Đề tài:** T7 — Multi-camera bandwidth profiling bằng dữ liệu RGB-D tổng hợp
-- **Môi trường đo lường chuẩn:** Laptop HP Victus 16, Windows 11, chưa có camera vật lý RealSense
-- **Kiến trúc hệ thống:** Producer-Consumer đa tiến trình (Multiprocessing) kết hợp Bộ nhớ chia sẻ (Shared Memory zero-copy) và Hàng đợi IPC (IPC Queue baseline).
+- **Môi trường đo lường chuẩn:** Laptop HP Victus 16-e0xxx (AMD Ryzen 7 5800H, 8GB RAM, Windows 11 Home Single Language)
+- **Kiến trúc hệ thống:** Producer-Consumer đa tiến trình (`multiprocessing` chế độ `spawn` Windows) kết hợp Bộ nhớ chia sẻ (`SharedMemory` zero-copy) và Hàng đợi IPC (`multiprocessing.Queue`).
+- **Upstream Repository:** [mirzafahad/realsense-multicam](https://github.com/mirzafahad/realsense-multicam) (Commit `ee144efd09bf534d8dc1b5f718fce7a4b89686a7`).
+- **Ranh giới nghiên cứu:** Benchmark pipeline phần mềm với dữ liệu RGB-D tổng hợp; chưa đo camera RealSense vật lý hoặc bus USB vật lý.
 
 ---
 
 ## 2. Phân công vai trò & Trách nhiệm nhóm (Team 5 người)
 
-Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_trien_khai_va_phoi_hop_Team5.md](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/Thu_tu_trien_khai_va_phoi_hop_Team5.md):
+Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_trien_khai_va_phoi_hop_Team5.md](file:///C:/Users/DMX/Desktop/VIN/LAB/PHASE%202/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/Thu_tu_trien_khai_va_phoi_hop_Team5.md) và [TEAMMATES.md](file:///C:/Users/DMX/Desktop/VIN/LAB/PHASE%202/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/TEAMMATES.md):
 
-| Thành viên | Vai trò | Nhiệm vụ chính | Phạm vi code / tài liệu |
+| Thành viên | Vai trò | Nhiệm vụ chính | Sản phẩm sở hữu |
 |---|---|---|---|
-| **TV1 — Bùi Văn Quang (MSV: 2A202602688)** *(Đã thực hiện)* | **Tích hợp & Kiến trúc** | Xây dựng repo, thiết lập môi trường Windows 11, xây dựng bộ khung `bench.py`, chuẩn hóa `specs/contract_spec.md`, scripts kiểm tra môi trường và hoàn thiện tài liệu hướng dẫn README. | `.gitignore`, `requirements.txt`, `scripts/check_env.py`, `specs/contract_spec.md`, `bench.py` (Khung chung), `README.md` |
-| **TV2** *(Giữ nguyên)* | **Nguồn dữ liệu & Bộ nhớ** | Hoàn thiện hàm `camera_producer()`, mô hình hóa độ nhiễu RGB-D, điều khiển pacing (FPS), quản lý vòng đời slot bộ nhớ chia sẻ (ring buffer) và cơ chế xử lý overload/latest frame. | `bench.py` (Section 2: Producer & Memory Slots) |
-| **TV3** *(Giữ nguyên)* | **Metric & Đo lường** | Hoàn thiện hàm `consumer_logger()`, công thức đo latency p95/mean, frame drop rate, tính toán throughput thực tế và viết script trực quan hóa `plot.py`. | `bench.py` (Section 3: Consumer & Telemetry), `plot.py` |
-| **TV4** *(Giữ nguyên)* | **Nghiên cứu & Giao thức** | Phân tích cơ sở lý thuyết băng thông raw vs bottleneck bus, thiết kế ma trận kiểm thử (Test Matrix), viết báo cáo phương pháp luận (Methodology) và giới hạn thực nghiệm. | `docs/methodology.md`, Báo cáo phân tích chuyên sâu |
-| **TV5** *(Giữ nguyên)* | **QA & Chạy thí nghiệm** | Lập checklist kiểm thử, phát triển kịch bản tự động hóa runner (`scripts/run_experiments.py`), kiểm tra clone sạch, vận hành đo đạc chính thức trên laptop HP Victus và lưu vết evidence. | `scripts/runner.py`, `docs/checklist.md`, Dữ liệu đo `results/` |
+| **TV1 — Bùi Văn Quang (MSV: 2A202602688)** | **Tích hợp & Kiến trúc** | Xây dựng repo, thiết lập môi trường Windows 11, chuẩn hóa `specs/contract_spec.md`, kiểm tra tích hợp, hoàn thiện README. | `specs/contract_spec.md`, `scripts/check_env.py`, `scripts/smoke_test.py`, `reports/TV1_2A202602688.md` |
+| **TV2 — Nguyễn Đức Triệu (MSV: 2A202602978)** | **Nguồn dữ liệu & Bộ nhớ** | Hàm `producer()`, mô hình hóa RGB-D (5 bytes/pixel), pacing chống phát dồn, quản lý slot bộ nhớ chia sẻ (32 slots) và unit tests. | `benchmark/bench.py` (producer), `docs/H2_data_contract_and_memory_ownership.md`, `tests/test_producer_and_memory.py`, `reports/TV2_2A202602978.md` |
+| **TV3 — Nguyễn Văn Thân (MSV: 2A202602859)** | **Metric & Đo lường** | Consumer, bộ đếm frame accounting, công thức đo latency P95/queue wait/copy, telemetry logging và script đồ thị `plot.py`. | `plots/plot.py`, `benchmark/plot.py`, `docs/methodology.md`, `reports/TV3_2A202602859.md`, `results/session_tv3_pilot_02/` |
+| **TV4 — Bùi Việt Anh (MSV: 2A202602611)** | **Nghiên cứu & Giao thức** | Phân tích cơ sở lý thuyết băng thông raw vs bottleneck bus, ma trận kiểm thử (Test Matrix), phân tích failure và giới hạn kết luận. | `docs/benchmark_plan.md`, `docs/limitations.md`, `docs/references.md`, `reports/TV4_2A202602611.md` |
+| **TV5 — [QA & Experiment Lead]** | **QA & Vận hành Thí nghiệm** | Lập checklist QA, phát triển kịch bản runner tự động (`benchmark/suite.py`), vận hành đo đạc trên laptop HP Victus 16, thu thập evidence index. | `benchmark/suite.py`, `docs/QA.md`, `docs/environment.txt`, `reports/TV5_MSV.md`, `slides/pitch.md` |
 
 ---
 
@@ -29,21 +31,54 @@ Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_tr
 
 ```text
 K4-Track4-Day04-10-7-Sensor-Reality-Sprint/
-├── .gitignore                      # Cấu hình bỏ qua cache, file tạm, output nặng
-├── requirements.txt                # Danh sách thư viện phụ thuộc (Windows 11)
-├── README.md                       # Hướng dẫn tổng thể dự án (TV1 - Bùi Văn Quang)
-├── Thu_tu_trien_khai_va_phoi_hop_Team5.md  # Kế hoạch phối hợp tác chiến của nhóm
-├── bench.py                        # Bộ khung benchmark tích hợp (Core Profiler)
+├── .gitignore                      # Cấu hình bỏ qua cache, file tạm, lưu giữ evidence
+├── requirements.txt                # Thư viện phụ thuộc cho scripts kiểm tra
+├── requirements-benchmark.txt      # Thư viện phụ thuộc chuẩn cho benchmark suite
+├── requirements-benchmark-lock.txt # Lock phiên bản pip freeze
+├── README.md                       # Tài liệu tổng thể dự án
+├── TEAMMATES.md                    # Danh sách chi tiết 5 thành viên nhóm
+├── UPSTREAM.md                     # Tài liệu đối chiếu upstream repo
+├── Ke_hoach_T7_MultiCamera_Team5_Windows11.md # Kế hoạch chi tiết của giảng viên
+├── Thu_tu_trien_khai_va_phoi_hop_Team5.md     # Quy trình phối hợp tác chiến 5 người
+├── bench.py                        # Profiler tích hợp dạng script đơn (TV1/TV2/TV3)
+├── benchmark/                      # Gói benchmark dạng module chuẩn hóa (TV2/TV3/TV5)
+│   ├── __init__.py
+│   ├── bench.py                    # Core benchmark pipeline (Shared Memory + Queue)
+│   ├── suite.py                    # Runner tự động 54 runs (Matrix + Failure)
+│   └── plot.py                     # Script tổng hợp kết quả CSV và vẽ đồ thị
 ├── specs/
-│   └── contract_spec.md            # Đặc tả kỹ thuật: RGB-D, Metadata, CSV Schema
+│   └── contract_spec.md            # Đặc tả kỹ thuật: RGB-D, Metadata, CSV Schema (TV1)
 ├── scripts/
-│   ├── check_env.py                # Script kiểm tra phần cứng & môi trường (TV1 - Bùi Văn Quang)
-│   └── runner.py                   # (Vùng của TV5: Tự động chạy test matrix)
-├── plots/                          # (Vùng của TV3: Chứa script plot.py & hình biểu đồ)
-│   └── .gitkeep
-├── results/                        # (Vùng của TV5: Chứa CSV log viễn trắc và summary)
-│   └── .gitkeep
-└── docs/                           # (Vùng của TV4: Tài liệu lý thuyết, methodology)
+│   ├── check_env.py                # Script kiểm tra phần cứng & môi trường (TV1)
+│   └── smoke_test.py               # Script smoke test tích hợp nhanh (TV1)
+├── tests/
+│   └── test_producer_and_memory.py # Unit tests kiểm tra producer & shared memory (TV2)
+├── plots/
+│   └── plot.py                     # Script vẽ đồ thị của TV3
+├── docs/                           # Bộ tài liệu kỹ thuật & phương pháp
+│   ├── environment.txt             # Manifest phần cứng máy HP Victus 16 (TV5)
+│   ├── QA.md                       # Quy trình QA và tiêu chuẩn run hợp lệ (TV5)
+│   ├── benchmark_plan.md           # Kế hoạch thí nghiệm & ma trận 54 runs (TV4)
+│   ├── methodology.md              # Phương pháp luận và công thức metric (TV3)
+│   ├── limitations.md              # Ranh giới kết luận và giới hạn phần cứng (TV4)
+│   ├── references.md               # Tài liệu tham khảo và ghi chú đọc (TV4)
+│   ├── decision.md                 # Biên bản ra quyết định kỹ thuật (TV4)
+│   ├── H2_data_contract_and_memory_ownership.md # Tài liệu bàn giao H2 (TV2)
+│   └── TV2_literature_notes.md     # Ghi chú tài liệu của TV2
+├── reports/                        # 5 Báo cáo cá nhân của 5 thành viên
+│   ├── TV1_2A202602688.md          # Báo cáo cá nhân TV1 (Bùi Văn Quang)
+│   ├── Bao_cao_TV1_Tich_hop.md     # Báo cáo tích hợp TV1
+│   ├── TV2_2A202602978.md          # Báo cáo cá nhân TV2 (Nguyễn Đức Triệu)
+│   ├── TV3_2A202602859.md          # Báo cáo cá nhân TV3 (Nguyễn Văn Thân)
+│   ├── TV4_2A202602611.md          # Báo cáo cá nhân TV4 (Bùi Việt Anh)
+│   └── TV5_MSV.md                  # Báo cáo cá nhân TV5 (QA Lead)
+├── slides/
+│   └── pitch.md                    # Dàn ý 5 slide thuyết trình 4 phút
+└── results/                        # Dữ liệu đo đạc thực nghiệm và đồ thị
+    ├── EVIDENCE_INDEX.md           # Chỉ mục liên kết phát biểu - số đo (TV5)
+    ├── smoke_test_01/              # Kết quả Smoke test 1 camera
+    ├── smoke_test_failure_01/      # Kết quả Smoke test có delay
+    └── session_tv3_pilot_02/       # Kết quả đo pilot đợt 2 của TV3
 ```
 
 ---
@@ -51,71 +86,49 @@ K4-Track4-Day04-10-7-Sensor-Reality-Sprint/
 ## 4. Hướng dẫn thiết lập môi trường (Windows 11)
 
 ### Bước 1: Mở PowerShell và kiểm tra phiên bản Python
-Yêu cầu Python $\ge 3.8$ (khuyến nghị Python 3.10 - 3.12):
 ```powershell
-python --version
+py -3.11 --version
 ```
 
-### Bước 2: Cài đặt các gói thư viện phụ thuộc
+### Bước 2: Tạo môi trường ảo và cài đặt thư viện
 ```powershell
-pip install -r requirements.txt
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-benchmark.txt
 ```
 
 ### Bước 3: Chạy script kiểm tra tương thích hệ thống
 ```powershell
-python scripts/check_env.py
+.\.venv\Scripts\python.exe scripts/check_env.py
 ```
-Script sẽ kiểm tra dung lượng RAM khả dụng, số CPU Cores và khả năng cấp phát của module `multiprocessing.shared_memory` trên Windows.
+
+### Bước 4: Chạy Unit Test kiểm thử bộ nhớ & Producer
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests
+```
 
 ---
 
 ## 5. Hướng dẫn chạy Benchmark
 
-### 5.1. Chạy kiểm thử nhanh (Smoke Test)
-Mô phỏng 2 camera RGB-D, 30 FPS trong 3 giây dùng cơ chế Shared Memory:
+### 5.1. Chạy Smoke Test kiểm tra đường ống (10 giây)
 ```powershell
-python bench.py --cameras 2 --fps 30 --duration 3 --mode shm
+.\.venv\Scripts\python.exe -m benchmark.bench --cameras 1 --duration 10 --out results/smoke_test_01
+Get-Content results/smoke_test_01/summary.json
 ```
 
-### 5.2. Chạy so sánh Baseline (Queue vs Shared Memory)
-- **Chế độ Hàng đợi bản sao (Baseline IPC Queue):**
-  ```powershell
-  python bench.py --cameras 4 --fps 30 --duration 5 --mode queue
-  ```
-- **Chế độ Bộ nhớ chia sẻ không copy (Zero-copy Shared Memory):**
-  ```powershell
-  python bench.py --cameras 4 --fps 30 --duration 5 --mode shm
-  ```
+### 5.2. Chạy Full Suite tự động (36 Matrix + 18 Failure = 54 runs)
+```powershell
+.\.venv\Scripts\python.exe -m benchmark.suite --set all --root results/session_full --duration 30 --repeats 3
+```
 
-### 5.3. Các tham số dòng lệnh tùy biến (`bench.py`)
-- `--cameras`: Số lượng camera giả lập (1, 2, 4, 8). Mặc định: `2`.
-- `--fps`: Tốc độ khung hình mục tiêu mỗi camera (ví dụ: 30 hoặc 60). Mặc định: `30`.
-- `--duration`: Thời lượng chạy benchmark (giây). Mặc định: `5`.
-- `--mode`: Phương thức truyền dữ liệu: `shm` (Shared Memory) hoặc `queue` (multiprocessing.Queue).
-- `--width`, `--height`: Độ phân giải khung hình (Mặc định: 640x480).
-- `--outdir`: Thư mục lưu kết quả viễn trắc (Mặc định: `results`).
-- `--seed`: Seed tạo dữ liệu giả lập ngẫu nhiên đảm bảo tính lặp lại.
+### 5.3. Xuất bảng tổng hợp và vẽ đồ thị
+```powershell
+.\.venv\Scripts\python.exe -m benchmark.plot --root results/session_full
+```
 
 ---
 
-## 6. Định dạng Dữ liệu & Kết quả đầu ra
-
-Mỗi lần chạy sẽ tự động tạo thư mục con theo quy tắc:
-`results/run_YYYYMMDD_HHMMSS_<num_cam>cam_<fps>fps_<mode>/`
-
-Gồm 2 tệp dữ liệu chính:
-1. `config.json`: Toàn bộ thông số thiết lập của run.
-2. `frames_telemetry.csv`: Dữ liệu viễn trắc theo từng frame (`timestamp`, `camera_id`, `frame_id`, `latency_ms`, `payload_bytes`).
-3. `summary.json`: Tóm tắt tổng frame đạt được, throughput trung bình (MB/s) và đánh giá trạng thái `VALID` / `DEGRADED`.
-
-Chi tiết giao ước định dạng vui lòng tham khảo [specs/contract_spec.md](file:///d:/Phase2-AITC/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/specs/contract_spec.md).
-
----
-
-## 7. Quy tắc phối hợp song song cho 4 thành viên còn lại
-
-- **TV2 (Producer):** Chỉ chỉnh sửa hàm `generate_synthetic_rgbd` và `camera_producer` trong **SECTION 2** của `bench.py`. Đảm bảo tôn trọng cấu trúc `FrameMetadata` đã chốt.
-- **TV3 (Metrics & Plot):** Tinh chỉnh logic trích xuất thống kê trong **SECTION 3** của `bench.py` và viết script vẽ đồ thị `plot.py` đọc từ `frames_telemetry.csv`.
-- **TV4 (Protocol & Research):** Tham khảo thông số cấu hình và dung lượng payload trong `specs/contract_spec.md` để đối chiếu với tính toán lý thuyết bus USB 3.0 / PCIe.
-- **TV5 (QA & Runner):** Dùng lệnh gọi CLI của `bench.py` để xây dựng runner tự động và đánh giá run hợp lệ theo tiêu chí tại Section 5 của `specs/contract_spec.md`.
-
+## 6. Tiêu chí Đánh giá & Ranh giới Kết luận
+- **Tính bảo toàn khung hình (Frame Accounting):** Mọi run phải đảm bảo 100% khớp các bộ đếm `scheduled = attempted + schedule_missed`, `attempted = enqueued + rejected`, `enqueued = completed + stale + late_completion + shutdown_backlog`.
+- **Ranh giới:** Đây là benchmark phần mềm trên máy tính HP Victus 16; băng thông được tính toán ở tầng ứng dụng, không đại diện cho giới hạn phần cứng bus USB 3.0 khi chưa gắn camera vật lý.

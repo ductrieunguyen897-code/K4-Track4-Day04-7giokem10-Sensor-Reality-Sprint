@@ -1,0 +1,7 @@
+﻿
+Name                                  DriverVersion
+----                                  -------------
+NVIDIA GeForce RTX 3050 Ti Laptop GPU 32.0.15.9282 
+AMD Radeon(TM) Graphics               31.0.12044.3 
+
+

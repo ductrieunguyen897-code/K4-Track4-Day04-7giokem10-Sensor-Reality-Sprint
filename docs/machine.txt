@@ -1,0 +1,6 @@
+﻿
+Model                        TotalPhysicalMemory
+-----                        -------------------
+Victus by HP Laptop 16-e0xxx          7886905344
+
+
