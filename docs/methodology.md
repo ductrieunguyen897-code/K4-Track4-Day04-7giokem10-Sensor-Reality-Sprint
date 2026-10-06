@@ -4,7 +4,7 @@ Ngày 05/10/2026 · Phiên bản TV4-draft-1.0 → **TV3-metrics-confirm-1.0**.
 
 Bảng cấu hình duy nhất: [benchmark_plan.md](benchmark_plan.md). Nội dung dưới đây đối chiếu tĩnh với Phụ lục A của [kế hoạch gốc](../Ke_hoach_T7_MultiCamera_Team5_Windows11.md).
 
-> **TV3 xác nhận (Metrics Lead).** Phần *Đếm và kiểm tra*, *Công thức và đơn vị*, *File và cột theo code mẫu*, *Hợp lệ và tổng hợp* dưới đây đã được đối chiếu với code tích hợp trong `bench.py` (SECTION 3 — `MetricsCollector`) và `plots/plot.py` tại commit `feat/metrics-and-plots`. Các điểm khác biệt so với bản nháp TV4-draft-1.0 được ghi rõ bằng khối **[TV3]** để nhóm đối chất trước khi khóa. Những mục còn lại (đường đi dữ liệu, khoảng đo, trình tự) là mô tả chung, TV2 xác nhận phần producer.
+> **TV3 xác nhận (Metrics Lead).** Phần *Đếm và kiểm tra*, *Công thức và đơn vị*, *File và cột theo code mẫu*, *Hợp lệ và tổng hợp* dưới đây đã được đối chiếu với code tích hợp trong `bench.py` (SECTION 3 — `MetricsCollector`) và `plots/plot.py` tại nhánh `feat/tv3-metrics-report` (commit `93a4dc5`). Các điểm khác biệt so với bản nháp TV4-draft-1.0 được ghi rõ bằng khối **[TV3]** để nhóm đối chất trước khi khóa. Những mục còn lại (đường đi dữ liệu, khoảng đo, trình tự) là mô tả chung, TV2 xác nhận phần producer.
 
 ## Đường đi của một cặp ảnh
 

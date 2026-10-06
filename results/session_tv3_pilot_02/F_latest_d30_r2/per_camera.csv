@@ -1,0 +1,5 @@
+camera,scheduled,attempted,enqueued,rejected,schedule_missed,completed,stale,late_completion,shutdown_backlog,fps,accounting_ok
+0,300,300,300,0,0,80,219,0,1,8.0,True
+1,300,300,300,0,0,80,219,0,1,8.0,True
+2,300,300,300,0,0,79,220,0,1,7.9,True
+3,300,300,300,0,0,79,220,1,0,7.9,True
