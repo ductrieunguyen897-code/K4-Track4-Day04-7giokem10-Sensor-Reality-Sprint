@@ -29,6 +29,7 @@ results/*
 !results/.gitkeep
 plots/*
 !plots/.gitkeep
+!plots/plot.py
 logs/*
 !logs/.gitkeep
 

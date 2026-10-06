@@ -1,8 +1,10 @@
-# Phương pháp đo — TV4
+# Phương pháp đo — TV4 (soạn) / TV3 (xác nhận metric, counter, cửa sổ, đồng hồ)
 
-Ngày 05/10/2026 · Phiên bản TV4-draft-1.0 · Chưa được TV2/TV3/TV5 xác nhận.
+Ngày 05/10/2026 · Phiên bản TV4-draft-1.0 → **TV3-metrics-confirm-1.0**.
 
-Bảng cấu hình duy nhất: [benchmark_plan.md](benchmark_plan.md). Nội dung dưới đây đối chiếu tĩnh với Phụ lục A của [kế hoạch gốc](../Ke_hoach_T7_MultiCamera_Team5_Windows11.md); chưa đối chiếu với code tích hợp và chưa chạy thử.
+Bảng cấu hình duy nhất: [benchmark_plan.md](benchmark_plan.md). Nội dung dưới đây đối chiếu tĩnh với Phụ lục A của [kế hoạch gốc](../Ke_hoach_T7_MultiCamera_Team5_Windows11.md).
+
+> **TV3 xác nhận (Metrics Lead).** Phần *Đếm và kiểm tra*, *Công thức và đơn vị*, *File và cột theo code mẫu*, *Hợp lệ và tổng hợp* dưới đây đã được đối chiếu với code tích hợp trong `bench.py` (SECTION 3 — `MetricsCollector`) và `plots/plot.py` tại commit `feat/metrics-and-plots`. Các điểm khác biệt so với bản nháp TV4-draft-1.0 được ghi rõ bằng khối **[TV3]** để nhóm đối chất trước khi khóa. Những mục còn lại (đường đi dữ liệu, khoảng đo, trình tự) là mô tả chung, TV2 xác nhận phần producer.
 
 ## Đường đi của một cặp ảnh
 
@@ -46,6 +48,8 @@ enqueued = completed + stale + late_completion + shutdown_backlog
 
 Ảnh chưa hoàn thành không đồng nghĩa ảnh bị bỏ. Kiểm tra thêm số dòng frames.csv theo camera và trạng thái khớp per_camera.csv; mỗi cặp camera/seq chỉ có một trạng thái cuối. `queue.empty()` hoặc `qsize()` không thay được các bộ đếm.
 
+**[TV3] Ba đẳng thức trên được `MetricsCollector.finalize` kiểm tra cho từng camera và ghi vào `per_camera.csv` (`accounting_ok`) và `summary.json` (`accounting_all_ok`).** Nguồn số: `scheduled` = `round(F×T)`; `attempted/enqueued/rejected/schedule_missed` do producer ghi vào `ctx.Array('q')` (4 ô/camera); `completed/stale/late_completion/shutdown_backlog` do consumer đếm. `schedule_missed` là nhịp bị bỏ khi `now ≥ end` hoặc trễ ≥ 1/F — producer **không phát dồn bù**. `rejected` gồm hai trường hợp: hết ô trống (`queue.Empty` khi lấy slot) và bản sao xong sau `end`. `stale` chỉ sinh ở policy `latest`. Đây là các điểm dễ bị hiểu nhầm: **`rejected` (producer chủ động) khác `stale` (consumer bỏ ảnh cũ) khác `schedule_missed` (không thử phát)**, và cả ba đều khác `shutdown_backlog`/`late_completion` (ảnh thật đã vào hệ thống nhưng chưa xong trong cửa sổ).
+
 ## Công thức và đơn vị
 
 Trong công thức tổng, cộng các bộ đếm của tất cả camera. S=5WH byte/cặp ảnh, T là giây, F là FPS mục tiêu/camera, N là camera.
@@ -67,29 +71,50 @@ Trong công thức tổng, cộng các bộ đếm của tất cả camera. S=5W
 
 Chờ hàng đợi = 1000×(t_receive−t_enqueue); sao chép phía xử lý = 1000×(t_copy−t_receive). P95 là ngưỡng khoảng 95% mẫu không vượt quá; dùng np.percentile theo code mẫu, khóa phiên bản NumPy. Không cộng ba P95 để suy ra tổng P95 vì chúng có thể thuộc các ảnh khác nhau.
 
+**[TV3] Cửa sổ và đồng hồ (xác nhận theo code).** `start = perf_counter() + 1` sau khi mọi nguồn báo ready; `end = start + T`. Thời gian tạo process, tạo mẫu tĩnh và 1 giây đệm không nằm trong T. Mốc `t_capture` lấy **ngay trước** khi producer copy vào slot, `t_enqueue` **ngay sau** copy và trước `put` metadata, `t_receive` **sau** khi consumer lấy được metadata, `t_copy` **sau** khi consumer copy ra buffer riêng. Vì vậy `latency = t_finish − t_capture` là **end-to-end** (gồm copy nguồn + chờ hàng đợi + copy đích + delay cài), còn `queue_wait` và `copy` chỉ là hai thành phần. **[TV3] Không được cộng ba P95 lại** vì `latency P95`, `queue_wait P95`, `copy P95` có thể thuộc ba ảnh khác nhau — chỉ so độ lớn để biết nghẽn nằm ở hàng đợi hay ở copy.
+
+**[TV3] Latency bias.** `latency_p95_ms` chỉ tính ảnh `completed`; khi drop nhiều (policy `latest` hoặc `rejected` cao), các ảnh chờ lâu bị loại khỏi mẫu nên **P95 trông thấp một cách giả tạo**. Vì thế luôn đọc `latency_p95_ms` song song với `completion_ratio`, `explicit_drop_pct` và `backlog_at_end`; một P95 thấp kèm drop cao không phải là "hệ thống nhanh".
+
 CPU chuẩn hóa: tổng CPU% của tiến trình chính và N nguồn chia số CPU logic. CPU hệ thống gồm cả tác vụ ngoài benchmark. RAM báo tổng RSS (bộ nhớ đang hiện diện của các tiến trình), có thể đếm vùng nhớ chung nhiều lần; không gọi là RAM vật lý duy nhất. Mẫu tài nguyên theo code khoảng 0.5 giây nhưng có thể thưa hơn do xử lý chậm. GPU là NA (chưa đo), không điền 0.
 
 ## File và cột theo code mẫu
 
 | File | Cột/nội dung |
 |---|---|
-| frames.csv | camera, seq, status, capture_s, enqueue_s, finish_s, latency_ms |
-| resources.csv | elapsed_s, cpu_normalized_pct, system_cpu_pct, rss_sum_MB, system_memory_pct, backlog_proxy |
+| frames.csv | camera, seq, status, slot_id, capture_s, enqueue_s, finish_s, latency_ms |
+| resources.csv | elapsed_s, cpu_normalized_pct, system_cpu_pct, rss_sum_MB, system_memory_pct, backlog_proxy, n_valid_processes |
 | per_camera.csv | camera, scheduled, attempted, enqueued, rejected, schedule_missed, completed, stale, late_completion, shutdown_backlog, fps, accounting_ok |
+| frames_telemetry.csv | timestamp, camera_id, frame_id, slot_id, t_produced, t_consumed, latency_ms, payload_bytes (schema `contract_spec.md`, cổng smoke test TV1) |
 | config.json | Kích thước, FPS, duration, slots, seed, policy, delay_ms, nguồn, đồng hồ, commit, môi trường, số tiến trình giám sát |
 | summary.json | Trạng thái, chỉ số tổng, chỉ số từng camera; trường thiếu là null/NA |
 | summary.csv | Một dòng mỗi run do plot.py xuất, có run_id |
 | aggregate.csv | Một dòng mỗi nhóm điều kiện, n_runs, mean/SD của các metric được script hỗ trợ |
 
-frames.csv không chứa dòng riêng cho rejected/schedule_missed; chúng nằm trong per_camera.csv. Nó có thể chứa độ trễ late_completion, nên phải lọc status=completed khi đối chiếu độ trễ trong summary. Thời gian `capture_s` là đồng hồ phần mềm, không phải ngày giờ lịch.
+**[TV3] Trạng thái trong `frames.csv`** là một trong bốn giá trị: `completed` (xong trước `end`), `completed_after_window` (late_completion), `stale` (latest bỏ), `shutdown_backlog` (dọn lúc kết thúc). Tổng số dòng `frames.csv` đúng bằng `enqueued` từng camera, nên `frames.csv` không chứa dòng riêng cho `rejected`/`schedule_missed` — chúng chỉ nằm trong `per_camera.csv`.
 
-Đầu ra aggregate mẫu chỉ có FPS camera chậm nhất, P95 latency, drop và CPU. TV3 cần bổ sung tổng hợp các chỉ số còn lại nếu dùng trong báo cáo; không giả định chúng đã có sẵn.
+**[TV3] `latency_ms` trong `frames.csv`** được ghi cho cả `completed_after_window`, còn các metric độ trễ trong `summary.json` (`latency_mean_ms`, `latency_p95_ms`, `queue_wait_p95_ms`, `copy_p95_ms`) **chỉ tính `completed`**. Khi đối chiếu độ trễ từ `frames.csv`, phải lọc `status=completed`. `capture_s`/`enqueue_s`/`finish_s` là đồng hồ phần mềm `time.perf_counter`, không phải ngày giờ lịch và không so được giữa hai máy.
+
+**[TV3] `resources.csv`** thêm cột `n_valid_processes` (số tiến trình trả lời thành công mỗi mẫu). Khi `n_valid_processes < cameras+1`, dòng đó là tổng thiếu và bị loại khỏi `cpu_normalized_mean_pct`/`rss_sum_peak_MB`; `summary.json` ghi kèm `resource_samples`, `resource_samples_valid`, `resource_monitor_expected`. GPU luôn `NA`, không điền 0.
+
+Đầu ra aggregate của `plots/plot.py` tổng hợp **đủ 12 chỉ số** (không chỉ FPS chậm nhất/P95/drop/CPU): thêm FPS tổng, completion, deadline miss, backlog, latency mean, queue-wait P95, copy P95, RSS đỉnh. Mỗi chỉ số có `_mean`, `_sd` và `_n` (số lượt có giá trị hợp lệ) để không giả định đủ ba lượt khi có giá trị null.
 
 ## Hợp lệ và tổng hợp
 
 Một lượt dùng để kết luận phải có status=ok; mọi accounting_ok=true; đúng cấu hình/commit/máy; đủ thời gian; completed>0 và độ trễ hữu hạn không âm. Thiếu CPU/RAM phải ghi lý do và phạm vi thiếu; chưa được kết luận về tài nguyên. `status=ok` một mình không đủ.
 
+**[TV3] Bộ kiểm tra hợp lệ trong code.** `MetricsCollector.finalize` gán `status="invalid"` (kèm trường `failure` nêu lý do) nếu bất kỳ điều nào sau đây xảy ra, ngay cả khi đếm khớp:
+1. `accounting_all_ok` sai (một trong ba đẳng thức vỡ ở bất kỳ camera nào);
+2. `completed == 0` (không có ảnh hoàn thành trong cửa sổ);
+3. có mẫu latency không hữu hạn hoặc âm;
+4. một worker phải `terminate()` (cờ `forced_termination`).
+
+`summary.json` cũng ghi `valid` (bool) và `failure` để `plot.py` lọc. **[TV3]** `status=ok` chưa đủ để đưa vào tổng hợp — `plots/plot.py` còn yêu cầu `accounting_all_ok=true` và `frames_received>0`, và loại run không đạt ra khỏi `summary.csv`/`aggregate.csv` (vẫn giữ trên đĩa và in lý do).
+
 Từng nhóm cần đủ 3 lượt hợp lệ, cùng tất cả thông số ngoài yếu tố đang so sánh. Tính trung bình và SD (độ dao động giữa ba lượt) của từng chỉ số. P95 tổng hợp là trung bình/SD của ba P95 từng lượt, không phải P95 của ảnh ghép chung. Không lấy số ảnh làm số lần thí nghiệm độc lập.
+
+**[TV3] Khóa nhóm tổng hợp.** `plots/plot.py` gom nhóm theo đủ 11 khóa: `family, width, height, target_fps, cameras, delay_ms, policy, slots, duration_s, seed, code_commit` — nên hai điều kiện khác slots/duration/seed/commit **không bị trộn** dù nằm chung một root. Script cảnh báo (`[WARN]`) khi một nhóm có ít hơn `--min-repeats` (mặc định 3) lượt hợp lệ, nhưng không tự bịa lượt thiếu.
+
+**[TV3] SD không phải khoảng tin cậy.** `_sd` là độ lệch chuẩn mẫu giữa các lượt (n=3), phản ánh dao động chạy lại, **không** phải CI 95% và không suy ra được ý nghĩa thống kê. `_n` ghi số lượt thực có giá trị cho từng chỉ số (metric có thể thiếu ở vài lượt), nên không giả định luôn đủ 3.
 
 Đọc latency cùng completion/drop/backlog: chỉ tính ảnh hoàn thành có thể làm độ trễ trông thấp khi nhiều ảnh bị bỏ. Giữ FPS camera chậm nhất bên cạnh FPS tổng.
 

@@ -1,0 +1,130 @@
+# Báo cáo Nhiệm vụ Cá nhân — TV3: Metrics & Đo lường
+
+**Đề tài:** T7 — Multi-camera bandwidth profiling bằng dữ liệu RGB-D tổng hợp
+
+**Họ và tên:** `[TV3 — điền Họ tên]` · **Mã sinh viên:** `[điền MSV]`
+> Ghi chú: bản này chưa điền tên/MSV vì kế hoạch cấm bịa thông tin cá nhân. TV3 tự điền đúng họ tên và MSV của mình trước khi nộp (đổi tên tệp thành `reports/TV3_<MSV>.md` cho khớp mẫu TV1). Commit tác giả hiện là `TV3-Metrics <tv3-metrics@k4-track4.local>`.
+
+**Nhóm:** Team 5 (TV1 Bùi Văn Quang · TV2 · TV3 · TV4 VietAnh · TV5) | **Vai trò:** TV3 — Metrics Lead (counter, latency, throughput, CPU/RAM, CSV/plot)
+**Repo:** K4-Track4-Day04-10-7-Sensor-Reality-Sprint | **Nhánh:** `feat/metrics-and-plots`
+**Code commit:** `4ee1af0` (baseline TV1/TV4 đã merge vào `main`)
+**Thiết bị:** HP Victus 16, Windows 11 (10.0.26200), 12 CPU logic, 16.3 GB RAM; RGB-D tổng hợp, **chưa có camera thật**.
+
+---
+
+## Problem
+
+Robot gắn nhiều camera RGB-D phải xử lý đồng thời N luồng ảnh màu + độ sâu trên một laptop. Câu hỏi của nhóm là: khi số luồng tăng và khi bộ xử lý bị làm chậm, hệ thống còn giữ được bao nhiêu phần trăm dữ liệu, độ trễ tăng tới đâu, và tài nguyên (CPU/RAM) tốn bao nhiêu. Chưa có RealSense nên toàn bộ đầu vào là **RGB-D tổng hợp**; kết quả là **benchmark phần mềm**, không phải đo băng thông USB.
+
+Góc nhìn riêng của TV3: **metric rất dễ bị hiểu nhầm**. Cùng một con số "drop 60%" có thể là producer chủ động từ chối, consumer bỏ ảnh cũ, hay ảnh còn kẹt trong pool — ba nguyên nhân khác hẳn nhau về ý nghĩa. Vì vậy nhiệm vụ của TV3 không chỉ là in ra số, mà là **định nghĩa đúng counter, đúng cửa sổ đo, đúng đồng hồ, và bắt buộc kiểm tra accounting trước khi cho phép một run được dùng để kết luận.**
+
+## Method
+
+Kiến trúc (do TV1/TV2 dựng, TV3 đo): mỗi camera mô phỏng là một **process**; payload RGB `uint8 (H,W,3)` + depth `uint16 (H,W)` = `5·W·H` byte/frameset (P1 640×480 = 1,536,000 B) nằm trong **shared memory ring buffer** (`slots` ô/camera, cha giữ vòng đời SHM); metadata `(camera, seq, slot, capture_time, enqueue_time)` đi qua IPC Queue; consumer copy ra buffer riêng rồi `sleep(delay)`.
+
+Các điểm TV3 phải khóa vì chúng quyết định nghĩa của mọi metric:
+
+- **Window (cửa sổ đo).** Sau khi mọi producer báo ready, `start = perf_counter() + 1`; `end = start + T`. Thời gian spawn process, tạo mẫu tĩnh và 1 giây đệm **không** nằm trong T. Ảnh xong trước `end` mới là `completed`.
+- **Clock (đồng hồ).** `time.perf_counter()` — đồng hồ phần mềm trên **một máy**, không phải ngày-giờ và **không so được giữa hai máy**. Mốc: `t_capture` (ngay trước khi producer copy vào slot) → `t_enqueue` (sau copy, trước `put` metadata) → `t_receive` (sau khi consumer lấy metadata) → `t_copy` (sau khi consumer copy ra buffer) → `t_finish`. Vì thế `latency = t_finish − t_capture` là **end-to-end**; `queue_wait` và `copy` chỉ là hai thành phần, **không được cộng ba P95 lại** (ba P95 có thể thuộc ba ảnh khác nhau).
+- **Accounting (đối chiếu bộ đếm).** Mỗi camera phải thỏa cả ba đẳng thức:
+  ```
+  scheduled = attempted + schedule_missed
+  attempted = enqueued + rejected
+  enqueued  = completed + stale + late_completion + shutdown_backlog
+  ```
+  `MetricsCollector.finalize` kiểm tra từng camera, ghi `accounting_ok` vào `per_camera.csv` và `accounting_all_ok` vào `summary.json`.
+- **Validity (hợp lệ).** Một run chỉ được tổng hợp khi `status=ok` **và** `accounting_all_ok` **và** `completed>0` **và** mọi latency hữu hạn, không âm **và** không worker nào bị `terminate()`. `plots/plot.py` loại run không đạt ra khỏi `summary.csv`/`aggregate.csv` (vẫn giữ trên đĩa và in lý do).
+- **Aggregation.** Gom nhóm theo **11 khóa**: `family, width, height, target_fps, cameras, delay_ms, policy, slots, duration_s, seed, code_commit` — để hai điều kiện khác slots/duration/seed/commit không bị trộn. Mỗi metric lưu `_mean`, `_sd`, `_n` (số lượt có giá trị). **`_sd` là độ lệch chuẩn mẫu n=3, không phải CI 95%.**
+
+## Benchmark
+
+**Pilot đo thật** (chưa phải suite chính thức): P1 = 640×480 @ 30 FPS, `mode=shm`, `slots=32`, `seed=42`, **T=10 s**, n=3 lượt/cấu hình, pool = 4×32×1,536,000 = 196.6 MB. Gồm 9 điều kiện × 3 = 27 run, tất cả `status=ok`, `accounting_all_ok=true`.
+
+> Giới hạn: kế hoạch chốt suite chính T=30 s và ma trận M01–M12 + F0/F1/F2 đầy đủ (54 run). Phiên này là **pilot** để khóa counter/plot trước; số dưới đây là số đo thật của pilot, **không** thay thế suite chính.
+
+**A. Ma trận N (FIFO, delay 0) — mean, n=3:**
+
+| N | FPS tổng | FPS camera chậm nhất | Completion | Drop rõ ràng | P95 latency (ms) | Backlog cuối | CPU chuẩn hóa (%) | RSS đỉnh (MB) |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 30.000 | 30.000 | 1.000 | 0 % | 1.615 | 0 | 0.461 | 183.9 |
+| 2 | 60.000 | 30.000 | 1.000 | 0 % | 2.011 | 0 | 0.622 | 324.7 |
+| 4 | 120.000 | 30.000 | 1.000 | 0 % | 2.736 | 0 | 1.310 | 605.7 |
+
+Ở delay 0, mỗi camera giữ đúng 30 FPS và completion = 1.000 với N=1,2,4; P95 chỉ ~1.6–2.7 ms. **Điểm dễ hiểu nhầm:** `deadline_miss_pct` = 0 ở mọi run vì producer vẫn *thử phát* đủ nhịp — mất mát (nếu có) nằm ở `rejected`/`stale`, không nằm ở `schedule_missed`.
+
+**B. Failure — N=4, delay cài mỗi frameset (mean, n=3):**
+
+| Policy | Delay (ms) | FPS tổng | FPS min | Completion | Drop rõ ràng | P95 latency (ms) | Backlog cuối |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| fifo | 0 | 120.000 | 30.000 | 1.000 | 0 % | 2.815 | 0 |
+| fifo | 15 | 62.933 | 15.667 | 0.524 | 36.97 % | **2021.358** | 127 |
+| fifo | 30 | 32.100 | 8.000 | 0.268 | 62.58 % | **3984.094** | 128 |
+| latest | 0 | 120.000 | 30.000 | 1.000 | 0 % | 2.888 | 0 |
+| latest | 15 | 62.133 | 15.267 | 0.518 | 47.94 % | **50.499** | 3.3 |
+| latest | 30 | 31.767 | 7.900 | 0.265 | 73.19 % | **64.485** | 4.0 |
+
+Giới hạn lý thuyết của consumer là `1000/delay_ms` frameset/s: 15 ms → 66.7, 30 ms → 33.3. FPS tổng đo được (62.9 và 32.1) bám sát ngưỡng này — consumer là nút cổ chai, không phải bus.
+
+Bằng chứng (phiên pilot cục bộ, `results/` bị `.gitignore` nên không nằm trong repo; tái tạo bằng lệnh kèm dưới):
+- `results/session_tv3_pilot_02/aggregate.csv` — bảng mean/SD/n ở trên
+- `results/session_tv3_pilot_02/summary.csv` — một dòng mỗi run
+- `results/session_tv3_pilot_02/plots/failure_policy_tradeoff.png` — P95 và drop vs delay, FIFO vs latest
+- `results/session_tv3_pilot_02/plots/matrix_min_camera_fps.png` — FPS camera chậm nhất vs N
+
+Lệnh tái tạo (một ví dụ; mỗi run đổi `--out`/`--family`):
+
+```powershell
+python bench.py --cameras 4 --fps 30 --duration 10 --width 640 --height 480 `
+    --slots 32 --delay-ms 30 --policy fifo --mode shm `
+    --family failure --out results/session_tv3_pilot_02/F_fifo_d30_r1
+python plots/plot.py --root results/session_tv3_pilot_02
+```
+
+## Failure case
+
+**Nhóm quan sát được.** Với N=4, 640×480@30, slots=32, tăng delay consumer từ 0 → 30 ms làm P95 latency FIFO đổi từ **2.815 ms → 3984.094 ms** (~1400×), completion từ **1.000 → 0.268**, backlog cuối từ **0 → 128**. Với **cùng delay 30 ms**, latest giữ P95 ở **64.485 ms** và backlog cuối chỉ **4.0**, nhưng drop rõ ràng **tăng** từ 62.58 % (fifo) lên 73.19 % (latest). Bằng chứng: `session_tv3_pilot_02`, run `F_fifo_d30_r1..r3` vs `F_latest_d30_r1..r3`.
+
+**Backlog khác drop — nhìn vào counter mới thấy.** Đây là điểm TV3 nhấn mạnh. Ở delay 30 ms, `per_camera.csv` cho hai cơ chế **hoàn toàn khác nhau** dù FPS tổng gần bằng nhau (32.1 vs 31.8):
+
+| | scheduled | attempted | enqueued | rejected | stale | completed | shutdown_backlog |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| FIFO, cam 0 | 300 | 300 | 112 | **188** | 0 | 80 | **32** |
+| latest, cam 0 | 300 | 300 | 300 | 0 | **219** | 80 | 1 |
+
+- **FIFO** chặn ở *đầu vào*: pool đầy nên producer **từ chối 188/300** frameset (`rejected`), và **32 ảnh còn kẹt** trong slot khi hết cửa sổ (`shutdown_backlog`) → đó là lý do `backlog_at_end ≈ 128 = 4×32`. Ảnh được nhận thì phải **xếp hàng**, nên P95 nổ lên ~4 s.
+- **latest** chặn ở *đầu ra*: producer nạp đủ **300/300** (`rejected=0`), consumer **bỏ 219 ảnh cũ** (`stale`) để luôn xử lý ảnh mới nhất → backlog cuối chỉ ~1, P95 giữ ~64 ms.
+
+Vậy **`rejected` ≠ `stale` ≠ `schedule_missed` ≠ `shutdown_backlog`/`late_completion`**: producer chủ động từ chối · consumer bỏ ảnh cũ · nhịp không hề thử phát · ảnh đã vào hệ thống nhưng chưa xong trong cửa sổ. `backlog_at_end` (còn kẹt) khác hẳn `explicit_drop_pct` (đã bỏ hẳn).
+
+**Latency bias — cái bẫy số học.** `latency_p95_ms` **chỉ tính ảnh `completed`**. Khi drop cao (latest hoặc rejected cao), những ảnh chờ lâu nhất bị loại khỏi mẫu, nên **P95 trông thấp một cách giả tạo**. Đó chính là trường hợp latest delay 30 ms: P95 = 64 ms *đẹp*, nhưng completion chỉ 0.265 và drop 73 %. Một P95 thấp đi kèm drop cao **không** phải "hệ thống nhanh" — phải đọc P95 **song song** completion / drop / backlog. Vì vậy TV3 khóa quy tắc: không bao giờ kết luận từ một mình P95.
+
+**Nguồn cho biết.** Tài liệu Intel RealSense mô tả bandwidth, CPU, nguồn điện, cáp và buffering là các yếu tố cần xét khi chạy nhiều camera. Nhưng môi trường ở đây là **RGB-D tổng hợp trên CPU**, không phải USB/power thật, nên kết quả này **không** chứng minh giới hạn băng thông USB.
+
+**Suy luận kỹ thuật.** Ảnh nhận muộn khiến robot ra quyết định trên cảnh cũ. Nhóm **chưa** chạy detector/SLAM nên chưa đo được mức ảnh hưởng tới độ chính xác hay an toàn.
+
+**Limitation.** (1) Pilot T=10 s, n=3, chỉ P1, chưa phải suite 54 run T=30 s. (2) Delay được **cài có chủ đích** — nguyên nhân do OS scheduling/thermal chưa tách được. (3) `rss_sum_peak_MB` là **tổng RSS các process**, có thể đếm vùng nhớ chung nhiều lần, không phải "RAM vật lý duy nhất". (4) GPU = `NA` (chưa đo, không điền 0). (5) Chưa có camera thật.
+
+## Engineering decision
+
+**Chọn: dùng `latest` cho tác vụ ưu tiên độ mới (freshness), `fifo` cho tác vụ cần tính đầy đủ (recording).**
+
+- **Metric ủng hộ:** cùng delay 30 ms, latest giữ **P95 64.485 ms** và **backlog 4.0**, so với FIFO **3984.094 ms** và **128** — chênh ~62× về độ trễ và ~32× về backlog.
+- **Trade-off (phải nói rõ):** latest **đánh đổi tính đầy đủ** — drop 73.19 % so với 62.58 % của FIFO. Nếu tác vụ cần *mọi* khung (ghi log, dựng bản đồ offline), bỏ 73 % là không chấp nhận được → phải **giảm tải hoặc tăng năng lực consumer**, không phải bỏ khung.
+- **Phép thử tiếp:** chạy suite chính T=30 s, đủ M01–M12 + F0/F1/F2, n=3, trên **cùng** commit/seed; bổ sung cột `slots` vào biểu đồ để kiểm tra pool 16 vs 32 ảnh hưởng thế nào; sau đó mới đối chiếu ngưỡng SLO §11.5 (mỗi camera ≥95 % FPS mục tiêu, completion ≥95 %, P95 ≤ max(100 ms, 2×1000/F ms)).
+
+---
+
+### Đóng góp cá nhân
+
+- **`bench.py` — SECTION 3 (Consumer & Telemetry):** `MetricsCollector` với 4 counter/camera do producer ghi (`ctx.Array('q')`) + counter consumer (`completed/stale/late_completion/shutdown_backlog`); `finalize()` kiểm tra 3 đẳng thức accounting, gán `status="invalid"` kèm `failure` khi accounting vỡ / `completed==0` / latency không hữu hạn hoặc âm / có `terminate()`; xuất `per_camera.csv`, `frames.csv`, `resources.csv`, `frames_telemetry.csv` (đúng schema `contract_spec.md`), `summary.json` (12 metric + `_n`).
+- **`plots/plot.py`:** gom nhóm theo 11 khóa; `summary.csv` + `aggregate.csv` (mean/SD/n); 5 plot ma trận, `failure_policy_tradeoff`, `backlog_*`, `resources_*`; loại run không hợp lệ; **không vẽ CPU/RAM thiếu thành 0**; cảnh báo nhóm thiếu lượt.
+- **`docs/methodology.md`:** xác nhận (bản TV3-metrics-confirm-1.0) counter, công thức/đơn vị, cửa sổ, đồng hồ, CSV, bộ kiểm tra hợp lệ, khóa nhóm tổng hợp, và note "SD ≠ CI".
+- **Phiên pilot `session_tv3_pilot_02`:** 27 run hợp lệ, sinh `aggregate.csv` + 19 PNG làm bằng chứng cho báo cáo này.
+
+### Nguồn
+
+- `Ke_hoach_T7_MultiCamera_Team5_Windows11.md` §11.3 (metric sheet), §11.4 (clock/latency), §11.5 (SLO), §14 (plot), §18.3 (mẫu báo cáo), §7.1 (nhánh `feat/metrics-and-plots`).
+- `docs/methodology.md`, `specs/contract_spec.md`, `docs/integration_review.md`, `docs/benchmark_plan.md`.
+- Code: `bench.py` (commit `4ee1af0`), `plots/plot.py`.
+- Dữ liệu: `results/session_tv3_pilot_02/{aggregate.csv, summary.csv, plots/}` (cục bộ, `.gitignore`).
+- Intel RealSense documentation — yếu tố bandwidth/CPU/power/cabling/buffering cho multi-camera (dẫn theo TV4; chưa tự đo USB).
