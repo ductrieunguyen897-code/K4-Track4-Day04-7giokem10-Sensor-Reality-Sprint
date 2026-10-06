@@ -7,6 +7,7 @@ __pycache__/
 env/
 venv/
 .venv/
+.pytest_cache/
 ENV/
 build/
 develop-eggs/
@@ -24,13 +25,15 @@ wheels/
 .installed.cfg
 *.egg
 
-# Results & outputs (keep directory structure via .gitkeep)
-# Bằng chứng đo phải nằm trong repo (plan §6). Các phiên chính thức khác vẫn
-# bị bỏ qua cho tới khi TV5 chốt; riêng phiên pilot TV3 được commit làm bằng chứng.
+# Results & outputs
 results/*
 !results/.gitkeep
 !results/session_tv3_pilot_02/
 !results/session_tv3_pilot_02/**
+!results/smoke_test_01/
+!results/smoke_test_01/**
+!results/smoke_test_failure_01/
+!results/smoke_test_failure_01/**
 plots/*
 !plots/.gitkeep
 !plots/plot.py
@@ -46,4 +49,3 @@ settings.json
 Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-
