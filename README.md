@@ -23,7 +23,7 @@ Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_tr
 | **TV2 — Nguyễn Đức Triệu (MSV: 2A202602978)** | **Nguồn dữ liệu & Bộ nhớ** | Hàm `producer()`, mô hình hóa RGB-D (5 bytes/pixel), pacing chống phát dồn, quản lý slot bộ nhớ chia sẻ (32 slots) và unit tests. | `benchmark/bench.py` (producer), `docs/H2_data_contract_and_memory_ownership.md`, `tests/test_producer_and_memory.py`, `reports/TV2_2A202602978.md` |
 | **TV3 — Nguyễn Văn Thân (MSV: 2A202602859)** | **Metric & Đo lường** | Consumer, bộ đếm frame accounting, công thức đo latency P95/queue wait/copy, telemetry logging và script đồ thị `plot.py`. | `plots/plot.py`, `benchmark/plot.py`, `docs/methodology.md`, `reports/TV3_2A202602859.md`, `results/session_tv3_pilot_02/` |
 | **TV4 — Bùi Việt Anh (MSV: 2A202602611)** | **Nghiên cứu & Giao thức** | Phân tích cơ sở lý thuyết băng thông raw vs bottleneck bus, ma trận kiểm thử (Test Matrix), phân tích failure và giới hạn kết luận. | `docs/benchmark_plan.md`, `docs/limitations.md`, `docs/references.md`, `reports/TV4_2A202602611.md` |
-| **TV5 — [QA & Experiment Lead]** | **QA & Vận hành Thí nghiệm** | Lập checklist QA, phát triển kịch bản runner tự động (`benchmark/suite.py`), vận hành đo đạc trên laptop HP Victus 16, thu thập evidence index. | `benchmark/suite.py`, `docs/QA.md`, `docs/environment.txt`, `reports/TV5_MSV.md`, `slides/pitch.md` |
+| **TV5 — Nguyễn Văn Diện (MSV: 2A202602615)** | **QA & Vận hành Thí nghiệm** | Lập checklist QA, phát triển kịch bản runner tự động (`benchmark/suite.py`), vận hành đo đạc trên laptop HP Victus 16, thu thập evidence index. | `benchmark/suite.py`, `docs/QA.md`, `docs/environment.txt`, `reports/TV5_2A202602615.md`, `slides/pitch.md` |
 
 ---
 
@@ -71,7 +71,7 @@ K4-Track4-Day04-10-7-Sensor-Reality-Sprint/
 │   ├── TV2_2A202602978.md          # Báo cáo cá nhân TV2 (Nguyễn Đức Triệu)
 │   ├── TV3_2A202602859.md          # Báo cáo cá nhân TV3 (Nguyễn Văn Thân)
 │   ├── TV4_2A202602611.md          # Báo cáo cá nhân TV4 (Bùi Việt Anh)
-│   └── TV5_MSV.md                  # Báo cáo cá nhân TV5 (QA Lead)
+│   └── TV5_2A202602615.md          # Báo cáo cá nhân TV5 (Nguyễn Văn Diện)
 ├── slides/
 │   └── pitch.md                    # Dàn ý 5 slide thuyết trình 4 phút
 └── results/                        # Dữ liệu đo đạc thực nghiệm và đồ thị

@@ -36,7 +36,7 @@
 
 ---
 
-## Slide 4: Failure Case Analysis (2:20 – 3:15) — TV5 (QA Lead)
+## Slide 4: Failure Case Analysis (2:20 – 3:15) — TV5 (Nguyễn Văn Diện)
 - **Kịch bản gây lỗi đối chứng:** P2, 6 cameras, 30 FPS (tổng tải 180 FPS); bơm delay $15\text{ ms}$ và $30\text{ ms}$ vào consumer.
 - **Hiện tượng quan sát được:**
   - Với chính sách FIFO: Consumer quá tải, hàng đợi backlog tăng liên tục theo thời gian, độ trễ P95 tăng vọt từ **7.03 ms** (delay 0) lên **3,175.1 ms** (delay 15ms) và **6,165.4 ms** (delay 30ms).

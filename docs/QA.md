@@ -1,6 +1,6 @@
 # Quality Assurance & Experiment Execution Protocol (QA) — TV5
 
-**Người phụ trách:** TV5 — QA & Experiment Lead  
+**Người phụ trách:** TV5 — Nguyễn Văn Diện (MSV: 2A202602615) — QA & Experiment Lead  
 **Thiết bị thực thi:** Laptop HP Victus 16, Windows 11  
 
 ---
