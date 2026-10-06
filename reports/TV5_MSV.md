@@ -1,71 +1,81 @@
-# Báo cáo Cá nhân T7 — [Họ và Tên TV5], MSV: [Điền MSV]
+# Báo cáo Cá nhân T7 — TV5: QA & Experiment Lead
 
-**Nhóm:** Nhóm 5 | **Vai trò:** TV5 — QA & Experiment Lead  
+**Nhóm:** Nhóm 5 | **Vai trò:** TV5 — QA, Runner & Vận hành đo đạc thực nghiệm  
 **Repository:** [K4-Track4-Day04-TenNhom-Sensor-Reality-Sprint](https://github.com/ductrieunguyen897-code/K4-Track4-Day04-10-7-Sensor-Reality-Sprint)  
-**Code Commit:** [Điền commit hash git rev-parse HEAD]  
-**Thiết bị thực nghiệm:** HP Victus 16-e0xxx, AMD Ryzen 7 5800H, 8GB RAM, Windows 11  
-**Phạm vi:** Pipeline phần mềm RGB-D tổng hợp, không đo phần cứng camera RealSense hay bus USB.  
+**Code Commit:** `7fc3a33` (nhánh `feat/tv5-integration`, Tag: `v1.0-submission`)  
+**Thiết bị thực nghiệm:** HP Victus 16-e0xxx, AMD Ryzen 7 5800H (8 Cores / 16 Threads), 8GB RAM, Windows 11 Home Single Language (Build 26200)  
+**Dữ liệu thực nghiệm chính:** [`results/session_hp_victus_full/`](../results/session_hp_victus_full/) (Đầy đủ 54/54 runs, n=3 lặp độc lập)  
+**Phạm vi:** Pipeline phần mềm RGB-D tổng hợp, không đo phần cứng camera RealSense hay bus USB vật lý.  
 
 ---
 
 ## 1. Problem
-Trong các hệ thống robot sử dụng nhiều camera RGB-D, việc nhiều luồng dữ liệu đổ về đồng thời có thể gây quá tải cho bộ đệm hàng đợi và tiến trình xử lý trung tâm (consumer), dẫn đến độ trễ tăng vọt hoặc mất khung hình.  
-Với tư cách là **QA & Experiment Lead**, vấn đề trọng tâm của tôi là:
-- Thiết lập một quy trình thực nghiệm nghiêm ngặt, tự động hóa toàn bộ 54 lượt chạy (36 matrix + 18 failure) để đảm bảo tính tái lập (reproducibility).
-- Phát hiện các bất thường trong quá trình chạy (deadlock, crash worker, memory leak, hoặc sai lệch frame accounting).
-- Xác định chính xác ranh giới mà tại đó hệ thống chuyển từ trạng thái ổn định sang quá tải khi bị bơm delay nhân tạo ($15\text{ ms}$ và $30\text{ ms}$).
+Trong các hệ thống robot tự hành sử dụng nhiều camera RGB-D, khi tăng số lượng camera hoặc độ phân giải, lưu lượng dữ liệu khổng lồ (lên tới hàng Gigabits mỗi giây) có thể gây tắc nghẽn hàng đợi IPC và quá tải tiến trình xử lý (consumer) ngay cả khi chưa chạy mô hình thị giác máy tính.  
+Với tư cách là **QA & Experiment Lead** trực tiếp vận hành thiết bị đo, bài toán trọng tâm của tôi là:
+1. Thiết lập quy trình đo tự động hóa tuyệt đối, xáo trộn ngẫu nhiên thứ tự đo (random block design qua 3 lần lặp) để triệt tiêu hiện tượng dồn tích nhiệt (thermal throttling).
+2. Phát hiện và xử lý kịp thời các nguy cơ deadlock, lỗi căn lề logic, memory leak hoặc vi phạm ngân sách bộ nhớ trên môi trường Windows 11 với 8GB RAM vật lý.
+3. Thu thập dữ liệu thực nghiệm chuẩn xác, tái hiện điểm nghẽn hàng đợi (queue saturation failure) và đánh giá định lượng sự đánh đổi (trade-off) giữa chính sách FIFO và Latest.
 
 ---
 
 ## 2. Method
-- **Quy trình Runner & Tự động hóa:** Xây dựng script `benchmark/suite.py` thực hiện xáo trộn ngẫu nhiên thứ tự chạy (random block design) qua từng lần lặp (repetition) với seed cố định (`seed=42`) nhằm triệt tiêu các yếu tố nhiễu về nhiệt độ CPU (thermal throttling) và thời gian chạy.
+- **Quy trình Runner & Tự động hóa (`benchmark/suite.py`):**
+  - Tự động sinh danh sách 54 bài đo, lưu vết thứ tự trong `order.json`.
+  - Giám sát tiến trình bằng timeout an toàn (`duration + 90s`), ghi nhật ký console độc lập cho từng run.
+  - Phân tách 12 cấu hình Matrix (P0, P1, P2 qua $N \in \{1, 2, 4, 6\}$ camera) và 6 cấu hình Failure (P2, $N=6$, delay $0, 15, 30\text{ ms}$, FIFO vs Latest).
 - **Tiêu chuẩn kiểm thử hợp lệ (QA Guardrails):**
-  - Giám sát tiến trình bằng cơ chế timeout (`timeout = duration + 90s`) để tránh treo máy.
-  - Kiểm tra tính bảo toàn khung hình thông qua đẳng thức:  
-    $\text{scheduled} = \text{attempted} + \text{schedule\_missed}$  
-    $\text{attempted} = \text{enqueued} + \text{rejected}$  
-    $\text{enqueued} = \text{completed} + \text{stale} + \text{late\_completion} + \text{shutdown\_backlog}$
-- **Bảo toàn môi trường:** Mỗi lượt chạy xuất ra một thư mục độc lập gồm `config.json`, `summary.json`, `frames.csv`, `resources.csv`, `per_camera.csv` và file log console riêng biệt.
+  - Kiểm tra tính bảo toàn khung hình thông qua 3 phương trình:
+    $$\text{scheduled} = \text{attempted} + \text{schedule\_missed}$$
+    $$\text{attempted} = \text{enqueued} + \text{rejected}$$
+    $$\text{enqueued} = \text{completed} + \text{stale} + \text{late\_completion} + \text{shutdown\_backlog}$$
+  - Đảm bảo 100% 54/54 runs đạt `"status": "ok"` và `"accounting_ok": true` cho toàn bộ camera.
+- **Xử lý kỹ thuật thực tế:**
+  - Giải phóng bộ nhớ WSL nền, tinh chỉnh memory guard trong `bench.py` cho phép cấp phát khối Shared Memory 884.7 MB an toàn trong ngưỡng 1.5 GB.
+  - Phát hiện và vá lỗi thụt lề lệnh `pending.pop()` trong policy Latest, đảm bảo giải phóng slot tức thì và loại trừ nguy cơ deadlock.
 
 ---
 
 ## 3. Benchmark
-- **Kịch bản thực hiện:**
-  - 12 cấu hình Matrix ($N \in \{1, 2, 4, 6\}$, độ phân giải P0, P1, P2) $\times 3$ lần lặp = 36 runs.
-  - 6 cấu hình Failure (P2, $N=6$, delay $0, 15, 30\text{ ms}$, chính sách FIFO vs Latest) $\times 3$ lần lặp = 18 runs.
-- **Bảng số liệu tổng hợp chính (Sau khi chạy thực nghiệm):**
+Toàn bộ 54/54 runs đã hoàn thành trọn vẹn trên laptop HP Victus 16. Bảng số liệu dưới đây trích xuất từ [`aggregate.csv`](../results/session_hp_victus_full/aggregate.csv) biểu diễn giá trị $\text{Mean} \pm \text{SD}$ qua 3 lần lặp độc lập:
 
-| Cấu hình / Điều kiện | Achieved FPS/cam | Aggregate FPS | P95 Latency (ms) | Explicit Drop (%) | Deadline Miss (%) | Backlog cuối | CPU Norm (%) |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| F0: P2, N=6, Delay 0ms, FIFO | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] |
-| F1: P2, N=6, Delay 15ms, FIFO | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] |
-| F2: P2, N=6, Delay 30ms, FIFO | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] |
-| I1: P2, N=6, Delay 15ms, Latest | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] |
-| I2: P2, N=6, Delay 30ms, Latest | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] | [Điền số] |
+### 3.1. Bảng số liệu đối chứng 6 Cấu hình Failure & Policy (P2, N=6, Target FPS/cam = 30)
 
-*(Đính kèm link đến file `summary.csv`, `aggregate.csv` và các biểu đồ trong thư mục `results/`)*
+| Ký hiệu | Policy | Delay/frame | Achieved FPS/cam | Aggregate FPS | P95 Latency (ms) | Explicit Drop (%) | Tồn đọng (Backlog) | CPU Norm (%) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| **F0** | FIFO | 0 ms | $30.00 \pm 0.00$ | $180.00 \pm 0.00$ | $7.03 \pm 1.37$ | $0.00 \pm 0.00$ | 0 | $3.54 \pm 0.77$ |
+| **I0** | Latest | 0 ms | $29.97 \pm 0.06$ | $179.87 \pm 0.23$ | $8.13 \pm 3.73$ | $0.08 \pm 0.14$ | 0 | $3.72 \pm 0.60$ |
+| **F1** | FIFO | 15 ms | $10.18 \pm 0.04$ | $61.10 \pm 0.26$ | **$3,175.09 \pm 42.64$** | $62.52 \pm 0.15$ | **191** | $1.19 \pm 0.09$ |
+| **I1** | Latest | 15 ms | $9.83 \pm 0.03$ | $59.67 \pm 0.25$ | **$53.00 \pm 0.10$** | $66.74 \pm 0.12$ | **6** | $3.41 \pm 0.96$ |
+| **F2** | FIFO | 30 ms | $5.24 \pm 0.02$ | $31.60 \pm 0.10$ | **$6,165.38 \pm 16.77$** | $78.88 \pm 0.04$ | **191** | $0.92 \pm 0.37$ |
+| **I2** | Latest | 30 ms | $5.14 \pm 0.02$ | $31.07 \pm 0.12$ | **$68.13 \pm 0.08$** | $82.60 \pm 0.11$ | **8** | $3.42 \pm 0.84$ |
+
+### 3.2. Đánh giá Ma trận tải (Matrix M01 - M12):
+- **Khả năng đáp ứng tải:** Ở điều kiện bình thường (delay 0ms, FIFO), hệ thống trên Windows 11 đáp ứng hoàn hảo 100% Target FPS ở cả 12 cấu hình (P0: 5 FPS/cam, P1: 30 FPS/cam, P2: 30 FPS/cam).
+- **Quy luật độ trễ:** Độ trễ P95 tăng tuyến tính từ $1.00\text{ ms}$ (P0 N=1) lên $6.95\text{ ms}$ (P2 N=6). Lưu lượng hoàn thành ở P2 N=6 đạt **$827.44\text{ MB/s}$** (~6.6 Gbps raw payload) mà không bị rơi rụng khung hình nào (`drop = 0%`).
 
 ---
 
 ## 4. Failure Case
-- **Hiện tượng quan sát được:**
-  - Khi đưa delay $15\text{ ms}$ vào consumer trên 6 luồng P2 (tổng tải lý thuyết 180 FPS), consumer chỉ có thể xử lý tối đa $\approx 66.6\text{ FPS}$.
-  - Với chính sách FIFO (F1), hàng đợi nhanh chóng bị lấp đầy, thời gian chờ (`queue_wait_p95`) tăng đột biến, kéo theo P95 Latency tăng từ [x] ms lên [y] ms.
-  - Đến cuối phiên đo, số lượng frame bị tồn đọng (`shutdown_backlog`) lên tới hàng trăm frameset.
-- **Phân biệt ranh giới:**
-  - *Quan sát thực tế:* Hiện tượng nghẽn xảy ra do năng lực xử lý của consumer bị giới hạn bởi delay nhân tạo, không phải do Shared Memory hay CPU của laptop bị quá tải.
-  - *Giả thuyết/Hạn chế:* Trên camera thật, sự chậm trễ này sẽ khiến robot ra quyết định dựa trên các khung hình quá khứ, tiềm ẩn nguy cơ va chạm.
+- **Hiện tượng quan sát được (Quan sát thực nghiệm):**
+  - Khi đưa consumer delay $15\text{ ms}$ vào pipeline P2 N=6, consumer bị giới hạn năng lực xử lý ở mức $\approx 61.1\text{ FPS}$ (thay vì 180 FPS danh định).
+  - Với chính sách FIFO (F1), hàng đợi nhanh chóng bị quá tải, thời gian chờ trong hàng đợi (`queue_wait_p95`) tăng đột biến, đẩy độ trễ P95 toàn tuyến lên tới **$3.18\text{ giây}$**. Khi nâng delay lên $30\text{ ms}$ (F2), P95 Latency chạm mốc **$6.17\text{ giây}$**, và có tới **191 frames** bị tồn đọng cuối phiên đo.
+- **Hiệu quả của giải pháp Latest Policy:**
+  - Khi chuyển sang chính sách Latest (I1 & I2), consumer chủ động drop các frame cũ (`stale`) để chỉ xử lý frame mới nhất của từng camera.
+  - **Kết quả:** P95 Latency được ghìm từ $3,175\text{ ms}$ xuống còn **$53.0\text{ ms}$** ở delay 15ms (giảm 60 lần), và từ $6,165\text{ ms}$ xuống **$68.1\text{ ms}$** ở delay 30ms (giảm 90 lần). Số frame tồn đọng cuối phiên giảm triệt để từ 191 xuống còn **6 - 8 frames**.
+- **Phân biệt ranh giới:** Hiện tượng nghẽn trên là do năng lực tiêu thụ của consumer bị bão hòa, không phải do bus phần cứng. Trên camera vật lý, việc nghẽn cáp USB hoặc thiếu băng thông host controller sẽ gây drop frame ngay ở tầng UVC driver trước khi vào được hàng đợi.
 
 ---
 
 ## 5. Engineering Decision
-- **Quyết định đề xuất:**
-  - Đối với các tác vụ điều khiển robot thời gian thực (Real-time Navigation/Obstacle Avoidance): Chuyển sang chính sách **Latest per-camera** khi phát hiện queue backlog vượt quá ngưỡng cho phép (ví dụ $> 2$ frames). Quyết định này giúp ghìm P95 Latency ở mức thấp (< [z] ms), chấp nhận trade-off đánh đổi tỷ lệ drop khung hình cũ.
-  - Đối với tác vụ ghi dữ liệu phục vụ huấn luyện (Data Logging): Giữ chính sách FIFO nhưng bắt buộc phải giảm độ phân giải xuống P1 ($640 \times 480$) hoặc giảm FPS của nguồn về 15 FPS để khớp với throughput của consumer.
-- **Phép kiểm chứng phần cứng tiếp theo:** Mượn hub USB chuẩn công nghiệp và camera Intel RealSense D435/D405 vật lý để đo lường băng thông thực tế trên bus USB và kiểm tra hiện tượng drop gói ở tầng driver.
+- **Quyết định kỹ thuật dựa trên dữ liệu:**
+  1. **Tác vụ Robot thời gian thực (Real-time Navigation & Tránh va chạm):** Bắt buộc sử dụng chính sách **Latest per-camera**. Đánh đổi việc bỏ qua khoảng $66.7\% - 82.6\%$ khung hình cũ để đảm bảo robot luôn nhận được thông tin môi trường mới nhất trong vòng $< 70\text{ ms}$, tránh nguy cơ va chạm do xử lý dữ liệu trễ 3-6 giây.
+  2. **Tác vụ Lưu trữ dữ liệu học máy (Dataset Recording / SLAM mapping):** Giữ chính sách **FIFO**, nhưng bắt buộc phải giảm tải tại nguồn: hạ độ phân giải xuống P1 ($640 \times 480$) hoặc hạ tốc độ lấy mẫu xuống 15 FPS để tốc độ sản xuất không vượt quá thông lượng xử lý của ổ đĩa/consumer.
+- **Phép kiểm chứng phần cứng tiếp theo:**
+  - Mượn camera Intel RealSense D435/D455 vật lý và kiểm tra cấu trúc USB Root Hub trên laptop HP Victus bằng `USBView` để xác định các cổng USB có dùng chung controller hay không.
+  - Đo lường độ trễ phơi sáng phần cứng thực tế và kiểm tra format truyền dẫn YUYV trên cáp USB 3.0.
 
 ---
 **Đóng góp cá nhân:**
-- Chủ trì thiết lập và kiểm thử mã nguồn `benchmark/suite.py`.
-- Thực hiện toàn bộ quy trình QA, chạy Smoke test và điều khiển máy HP Victus 16 chạy hoàn chỉnh bộ 54 runs.
-- Giám sát tính bảo toàn dữ liệu (frame accounting) và biên soạn tài liệu `docs/QA.md`.
+- Chịu trách nhiệm thiết lập runner tự động hóa `benchmark/suite.py` và script tạo đồ thị `benchmark/plot.py`.
+- Trực tiếp kiểm thử, gỡ lỗi và vận hành toàn bộ 54 runs trên laptop HP Victus 16 đảm bảo 100% hợp lệ.
+- Tổng hợp chỉ mục chứng cứ [`results/EVIDENCE_INDEX.md`](../results/EVIDENCE_INDEX.md) và biên soạn tài liệu vận hành [`docs/QA.md`](../docs/QA.md).

@@ -78,7 +78,8 @@ K4-Track4-Day04-10-7-Sensor-Reality-Sprint/
     ├── EVIDENCE_INDEX.md           # Chỉ mục liên kết phát biểu - số đo (TV5)
     ├── smoke_test_01/              # Kết quả Smoke test 1 camera
     ├── smoke_test_failure_01/      # Kết quả Smoke test có delay
-    └── session_tv3_pilot_02/       # Kết quả đo pilot đợt 2 của TV3
+    ├── session_tv3_pilot_02/       # Kết quả đo pilot đợt 2 của TV3
+    └── session_hp_victus_full/     # Kết quả chính thức 54 runs trên laptop HP Victus 16 (Full Suite)
 ```
 
 ---

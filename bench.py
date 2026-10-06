@@ -537,7 +537,7 @@ def run_benchmark(args):
     sizes = calculate_frame_sizes(args.width, args.height)
     frame_bytes = sizes["total_size_bytes"]
     pool_bytes = frame_bytes * args.cameras * args.slots
-    if pool_bytes > min(1_500_000_000, psutil.virtual_memory().available * 0.35):
+    if pool_bytes > min(1_500_000_000, max(psutil.virtual_memory().available * 0.85, psutil.virtual_memory().total * 0.20)):
         raise RuntimeError(
             "Pool exceeds memory budget. Lower resolution/slots; record the change."
         )

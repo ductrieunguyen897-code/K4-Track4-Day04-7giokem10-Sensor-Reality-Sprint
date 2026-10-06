@@ -85,7 +85,7 @@ def run(args):
     cfg = vars(args).copy()
     cfg['frame_bytes'] = args.width * args.height * 5
     cfg['pool_bytes'] = cfg['frame_bytes'] * args.cameras * args.slots
-    if cfg['pool_bytes'] > min(1_500_000_000, psutil.virtual_memory().available * .35):
+    if cfg['pool_bytes'] > min(1_500_000_000, max(psutil.virtual_memory().available * 0.85, psutil.virtual_memory().total * 0.20)):
         raise RuntimeError('Pool exceeds memory budget. Lower resolution/slots; record the change.')
     config = {**cfg, 'python': platform.python_version(), 'platform': platform.platform(),
               'logical_cpus': psutil.cpu_count(), 'ram_bytes': psutil.virtual_memory().total,
@@ -182,8 +182,8 @@ def run(args):
                         pending[item[0]] = item
                     except queue.Empty:
                         continue
-                    cam = next(iter(pending))
-                    item = pending.pop(cam)
+                cam = next(iter(pending))
+                item = pending.pop(cam)
             else:
                 try:
                     item = output.get(timeout=.005)

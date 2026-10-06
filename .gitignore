@@ -28,8 +28,11 @@ wheels/
 # Results & outputs
 results/*
 !results/.gitkeep
+!results/EVIDENCE_INDEX.md
 !results/session_tv3_pilot_02/
 !results/session_tv3_pilot_02/**
+!results/session_hp_victus_full/
+!results/session_hp_victus_full/**
 !results/smoke_test_01/
 !results/smoke_test_01/**
 !results/smoke_test_failure_01/
