@@ -15,7 +15,7 @@ import pandas as pd
 
 def run_smoke_test():
     print("=" * 70)
-    print("RUNNING INTEGRATION SMOKE TEST (TV1 - Bùi Văn Quang [MSV: 2A202602688])")
+    print("RUNNING INTEGRATION SMOKE TEST (TV1 - Bui Van Quang [MSV: 2A202602688])")
     print("=" * 70)
 
     test_dir = os.path.join("results", "smoke_test_output")

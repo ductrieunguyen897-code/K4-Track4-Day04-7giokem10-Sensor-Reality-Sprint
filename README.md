@@ -15,7 +15,7 @@ Dự án đo lường và đánh giá hiệu năng băng thông (Bandwidth Profi
 
 ## 2. Phân công vai trò & Trách nhiệm nhóm (Team 5 người)
 
-Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_trien_khai_va_phoi_hop_Team5.md](file:///C:/Users/DMX/Desktop/VIN/LAB/PHASE%202/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/Thu_tu_trien_khai_va_phoi_hop_Team5.md) và [TEAMMATES.md](file:///C:/Users/DMX/Desktop/VIN/LAB/PHASE%202/K4-Track4-Day04-10-7-Sensor-Reality-Sprint/TEAMMATES.md):
+Dự án được tổ chức phân rã độc lập theo tài liệu [Thu_tu_trien_khai_va_phoi_hop_Team5.md](Thu_tu_trien_khai_va_phoi_hop_Team5.md) và [TEAMMATES.md](TEAMMATES.md):
 
 | Thành viên | Vai trò | Nhiệm vụ chính | Sản phẩm sở hữu |
 |---|---|---|---|
@@ -67,7 +67,6 @@ K4-Track4-Day04-10-7-Sensor-Reality-Sprint/
 │   └── TV2_literature_notes.md     # Ghi chú tài liệu của TV2
 ├── reports/                        # 5 Báo cáo cá nhân của 5 thành viên
 │   ├── TV1_2A202602688.md          # Báo cáo cá nhân TV1 (Bùi Văn Quang)
-│   ├── Bao_cao_TV1_Tich_hop.md     # Báo cáo tích hợp TV1
 │   ├── TV2_2A202602978.md          # Báo cáo cá nhân TV2 (Nguyễn Đức Triệu)
 │   ├── TV3_2A202602859.md          # Báo cáo cá nhân TV3 (Nguyễn Văn Thân)
 │   ├── TV4_2A202602611.md          # Báo cáo cá nhân TV4 (Bùi Việt Anh)

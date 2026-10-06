@@ -1084,11 +1084,11 @@ Slide ghi link/path ngắn để người chấm tìm evidence. Chuẩn bị s�
 
 | Người | Bản riêng trong repo | Repo URL chung | Lượt nộp VLearn | Mở lại sau nộp |
 |---|---|---|---|---|
-| TV1 | `reports/TV1_MSV.md` hoặc PDF/slide đúng yêu cầu | CùngURL | Chưa nộp | Chưa kiểm tra |
-| TV2 | `reports/TV2_MSV.md` | CùngURL | Chưa nộp | Chưa kiểm tra |
-| TV3 | `reports/TV3_MSV.md` | CùngURL | Chưa nộp | Chưa kiểm tra |
-| TV4 | `reports/TV4_MSV.md` | CùngURL | Chưa nộp | Chưa kiểm tra |
-| TV5 | `reports/TV5_MSV.md` | CùngURL | Chưa nộp | Chưa kiểm tra |
+| TV1 | `reports/TV1_2A202602688.md` | CùngURL | Đã nộp | Đã kiểm tra |
+| TV2 | `reports/TV2_2A202602978.md` | CùngURL | Đã nộp | Đã kiểm tra |
+| TV3 | `reports/TV3_2A202602859.md` | CùngURL | Đã nộp | Đã kiểm tra |
+| TV4 | `reports/TV4_2A202602611.md` | CùngURL | Đã nộp | Đã kiểm tra |
+| TV5 | `reports/TV5_2A202602615.md` | CùngURL | Đã nộp | Đã kiểm tra |
 
 Mỗi người:
 
